@@ -21,7 +21,9 @@ func TestHeapRead(t *testing.T) {
 	}
 	heap.Init(airport.EventHeap)
 	airport.EventHeap.Push(arrival1)
+	heap.Init(airport.EventHeap)
 	airport.EventHeap.Push(arrival2)
+	heap.Init(airport.EventHeap)
 
 	if e := airport.NextEvent(); e.GetTime() != 5 {
 		t.Errorf("Expected time 5, got time %v", e.GetTime())
