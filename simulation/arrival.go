@@ -1,23 +1,14 @@
-package events
+package simulation
 
 import (
 	"math"
 )
 
-type CommuterArrival struct {
-	a    *Airport
-	time uint64
-}
-
-func (arr *CommuterArrival) Time() uint64 {
-	return arr.time
-}
-
 // Make a new person and him to the queues.
 // Then, add this to the heap again.
 func (arr *CommuterArrival) Visit() {
 	passenger := &Commuter{
-		ArrivalTime: arr.time,
+		ArrivalTime: arr.Time,
 		State:       QueueingForCheckIn,
 		Bags:        CommuterBagGen(),
 	}
@@ -25,7 +16,7 @@ func (arr *CommuterArrival) Visit() {
 	shortest := GetShortest(arr.a.CheckInCoach)
 	shortest.Append(passenger)
 
-	arr.time += uint64(round(CommuterArrivalGen()))
+	arr.Time += uint64(round(CommuterArrivalGen()))
 	arr.a.EventHeap.Push(arr)
 }
 
@@ -36,21 +27,11 @@ func round(f float64) int {
 	return int(f + math.Copysign(0.5, f))
 }
 
-type InternationalArrival struct {
-	a              *Airport
-	ExpectedFlight *Flight
-	time           uint64
-}
-
-func (arr *InternationalArrival) Time() uint64 {
-	return arr.time
-}
-
 // Make a new person and him to the queues.
 // Then, add this to the heap again.
 func (arr *InternationalArrival) Visit() {
 	passenger := &International{
-		ArrivalTime: arr.time,
+		ArrivalTime: arr.Time,
 		State:       QueueingForCheckIn,
 		Bags:        InternationalBagGen(),
 	}
@@ -58,24 +39,11 @@ func (arr *InternationalArrival) Visit() {
 	shortest := GetShortest(arr.a.CheckInCoach)
 	shortest.Append(passenger)
 
-	arr.time += uint64(round(CommuterArrivalGen()))
+	arr.Time += uint64(round(CommuterArrivalGen()))
 	arr.a.EventHeap.Push(arr)
 }
 
-type FlightArrival struct {
-	A    *Airport
-	Time uint64
-}
-
-func (fa *FlightArrival) GetTime() uint64 {
-	return fa.Time
-}
-
-func (fa *FlightArrival) SetTime(u uint64) {
-	fa.Time = u
-}
-
-func (fa *FlightArrival) Visit() {
+func (fa *InternationalFlightTakeOff) Visit() {
 	flight := &Flight{
 		Time:                fa.Time + 6*60,
 		Passengers:          make([]*Passenger, 200),

@@ -1,21 +1,8 @@
-package events
+package simulation
 
 import (
 	"container/heap"
 )
-
-// TODO need to track if the counter is for first class passengers or not
-type Counter struct {
-	State        int       // The state that the passenger is in at the current time
-	IsFirstClass bool      // Represents whether or not this counter is for first class passengers or not
-	current      Passenger // The person at the desk
-	Time         uint64    // The time that the event is over
-	A            *Airport  // A link to the parent airport
-}
-
-func (c *Counter) GetTime() uint64 {
-	return c.Time
-}
 
 // check the state, and then handle each transition case
 func (c *Counter) Visit() {

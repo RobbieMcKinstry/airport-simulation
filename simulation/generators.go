@@ -1,7 +1,10 @@
-package events
+package simulation
 
 import (
+	"github.com/RobbieMcKinstry/StandardNormal/stdnormal"
 	rng "github.com/leesper/go_rng"
+
+	"math/rand"
 	"time"
 )
 
@@ -54,9 +57,18 @@ func NewBernGenerator(p float64) func() bool {
 }
 
 func NewNormalGenerator(mean, variance float64) func() float64 {
-	// TODO fix this to use my package
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	normBuffer := make(chan float64)
+
+	go func() {
+		for {
+			normBuffer <- stdnormal.Polar(random)
+		}
+	}()
+
 	return func() float64 {
-		return 0.0
+		return <-normBuffer
 	}
 
 }

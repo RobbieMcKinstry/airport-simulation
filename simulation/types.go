@@ -1,4 +1,4 @@
-package events
+package simulation
 
 import (
 	"container/heap"
@@ -77,67 +77,63 @@ type (
 		State       int
 		Bags        int64
 	}
-)
 
-const (
-	CommuterArrivalRate      = (40.0 / 60.0)
-	InternationalArrivalMean = 75.0
-	InternationalArrivalVar  = 50.0
-
-	QueueingForCheckIn = iota
-	PrintingBoardingPass
-	CheckingBags
-	MiscDelays
-	QueueingForSecurity
-	AtSecurity
-	AtGate
-	EmptyQueue
-)
-
-var (
-	CommuterArrivalGen      = NewExpGenerator(CommuterArrivalRate)
-	InternationalArrivalGen = NewNormalGenerator(InternationalArrivalMean, InternationalArrivalVar)
-	BagCheckGen             = NewExpGenerator(1.0)
-	BoardingPassGen         = NewExpGenerator(1.0 / 2.0)
-	MiscGen                 = NewExpGenerator(1.0 / 3.0)
-	CommuterBagGen          = NewGeoGenerator(0.80)
-	InternationalBagGen     = NewGeoGenerator(0.60)
-	BernoulliFirstGen       = NewBernGenerator(0.80)
-	BernoulliCoachGen       = NewBernGenerator(0.85)
-)
-
-func NewAirport() *Airport {
-
-	eh := &EventHeap{}
-	heap.Init(eh)
-
-	return &Airport{
-		EventHeap:          eh,
-		SecurityFirstClass: NewQueue(),
-		SecurityCoach:      NewQueue(),
-		SecurityCoach2:     NewQueue(),
-		CheckInFirstClass:  []*Queue{NewQueue()},
-		CheckInCoach:       []*Queue{NewQueue(), NewQueue(), NewQueue()},
-		Account:            0.0,
+	// TODO need to track if the counter is for first class passengers or not
+	Counter struct {
+		State        int       // The state that the passenger is in at the current time
+		IsFirstClass bool      // Represents whether or not this counter is for first class passengers or not
+		current      Passenger // The person at the desk
+		Time         uint64    // The time that the event is over
+		A            *Airport  // A link to the parent airport
 	}
-}
+)
 
-func (a *Airport) NextEvent() Event {
-	e := heap.Pop(a.EventHeap).(Event)
-	return e
-}
-
-func GetShortest(qs []*Queue) *Queue {
-	min := qs[0]
-
-	for _, q := range qs {
-		if q.Size() < min.Size() {
-			min = q
-		}
+// This block declares all of the event types.
+type (
+	CommuterArrival struct {
+		a    *Airport
+		Time uint64
 	}
 
-	return min
-}
+	InternationalArrival struct {
+		a              *Airport
+		ExpectedFlight *Flight
+		Time           uint64
+	}
+
+	InternationalFlightTakeOff struct {
+		A    *Airport
+		Time uint64
+	}
+
+	CommuterFlightTakeOff struct {
+		A    *Airport
+		Time uint64
+	}
+
+	CheckInEmptyFirstClass struct {
+		A    *Airport
+		Time uint64
+	}
+
+	CheckInEmptyCoach struct {
+		A    *Airport
+		Time uint64
+	}
+)
+
+func (c *CommuterArrival) GetTime() uint64              { return c.Time }
+func (c *CommuterArrival) SetTime(t uint64)             { c.Time = t }
+func (i *InternationalArrival) GetTime() uint64         { return i.Time }
+func (i *InternationalArrival) SetTime(t uint64)        { i.Time = t }
+func (fa *InternationalFlightTakeOff) GetTime() uint64  { return fa.Time }
+func (fa *InternationalFlightTakeOff) SetTime(t uint64) { fa.Time = t }
+func (cf *CommuterFlightTakeOff) GetTime() uint64       { return cf.Time }
+func (cf *CommuterFlightTakeOff) SetTime(t uint64)      { cf.Time = t }
+func (c *CheckInEmptyFirstClass) GetTime() uint64       { return c.Time }
+func (c *CheckInEmptyFirstClass) SetTime(t uint64)      { c.Time = t }
+func (c *CheckInEmptyCoach) GetTime() uint64            { return c.Time }
+func (c *CheckInEmptyCoach) SetTime(t uint64)           { c.Time = t }
 
 func (h EventHeap) Len() int           { return len(h) }
 func (h EventHeap) Less(i, j int) bool { return h[i].GetTime() < h[j].GetTime() }
@@ -147,6 +143,7 @@ func (h *EventHeap) Push(x interface{}) {
 	// Push and Pop use pointer receivers because they modify the slice's length,
 	// not just its contents.
 	*h = append(*h, x.(Event))
+	heap.Fix(h, len(*h)-1)
 }
 
 func (h *EventHeap) Pop() interface{} {
@@ -154,5 +151,6 @@ func (h *EventHeap) Pop() interface{} {
 	n := len(old)
 	x := old[n-1]
 	*h = old[0 : n-1]
+	heap.Init(h)
 	return x
 }

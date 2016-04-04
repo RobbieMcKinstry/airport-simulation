@@ -3,27 +3,23 @@ package spec
 import (
 	sim "github.com/RobbieMcKinstry/airport-simulation/simulation"
 
-	"container/heap"
 	"testing"
 )
 
 func TestHeapRead(t *testing.T) {
 	airport := sim.NewAirport()
 
-	arrival1 := &sim.FlightArrival{
+	arrival1 := &sim.InternationalFlightTakeOff{
 		A:    airport,
 		Time: 7,
 	}
 
-	arrival2 := &sim.FlightArrival{
+	arrival2 := &sim.InternationalFlightTakeOff{
 		A:    airport,
 		Time: 5,
 	}
-	heap.Init(airport.EventHeap)
 	airport.EventHeap.Push(arrival1)
-	heap.Init(airport.EventHeap)
 	airport.EventHeap.Push(arrival2)
-	heap.Init(airport.EventHeap)
 
 	if e := airport.NextEvent(); e.GetTime() != 5 {
 		t.Errorf("Expected time 5, got time %v", e.GetTime())
