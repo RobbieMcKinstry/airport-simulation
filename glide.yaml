@@ -1,0 +1,4 @@
+package: github.com/RobbieMcKinstry/airport-simulation
+import:
+- package: github.com/leesper/go_rng
+- package: github.com/oleiade/lane

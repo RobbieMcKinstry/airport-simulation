@@ -1,0 +1,8 @@
+hash: 1200c467b550019dbad3d5486713fe2e3160c90b6d245d06c18adc2e2aa245fd
+updated: 2016-03-29T13:31:55.896633966-04:00
+imports:
+- name: github.com/leesper/go_rng
+  version: 0816572ea28b1411c5e335593d833b5e81c434c6
+- name: github.com/oleiade/lane
+  version: e2df44de3dbdd0074d315d1fa74f15a090802b45
+devImports: []
