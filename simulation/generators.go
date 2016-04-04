@@ -4,6 +4,7 @@ import (
 	"github.com/RobbieMcKinstry/StandardNormal/stdnormal"
 	rng "github.com/leesper/go_rng"
 
+	"math"
 	"math/rand"
 	"time"
 )
@@ -71,4 +72,11 @@ func NewNormalGenerator(mean, variance float64) func() float64 {
 		return <-normBuffer
 	}
 
+}
+
+func round(f float64) int {
+	if math.Abs(f) < 0.5 {
+		return 0
+	}
+	return int(f + math.Copysign(0.5, f))
 }

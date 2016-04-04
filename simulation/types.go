@@ -67,6 +67,7 @@ type (
 	International struct {
 		TakeOff     *Flight
 		ArrivalTime uint64
+		FirstClass  bool
 		State       int
 		Bags        int64
 	}
@@ -96,8 +97,9 @@ type (
 	}
 
 	InternationalArrival struct {
-		a              *Airport
+		A              *Airport
 		ExpectedFlight *Flight
+		IsFirstClass   bool
 		Time           uint64
 	}
 
@@ -120,6 +122,31 @@ type (
 		A    *Airport
 		Time uint64
 	}
+
+	TerminateProgram struct {
+		A    *Airport
+		Time uint64
+	}
+
+	BoardingPassPrinted struct {
+		A    *Airport
+		Time uint64
+	}
+
+	BagsChecked struct {
+		A    *Airport
+		Time uint64
+	}
+
+	MiscDelaysFinishedFC struct {
+		A    *Airport
+		Time uint64
+	}
+
+	MiscDelaysFinishedCoach struct {
+		A    *Airport
+		Time uint64
+	}
 )
 
 func (c *CommuterArrival) GetTime() uint64              { return c.Time }
@@ -134,6 +161,16 @@ func (c *CheckInEmptyFirstClass) GetTime() uint64       { return c.Time }
 func (c *CheckInEmptyFirstClass) SetTime(t uint64)      { c.Time = t }
 func (c *CheckInEmptyCoach) GetTime() uint64            { return c.Time }
 func (c *CheckInEmptyCoach) SetTime(t uint64)           { c.Time = t }
+func (t *TerminateProgram) GetTime() uint64             { return t.Time }
+func (t *TerminateProgram) SetTime(ti uint64)           { t.Time = ti }
+func (t *BoardingPassPrinted) GetTime() uint64          { return t.Time }
+func (t *BoardingPassPrinted) SetTime(ti uint64)        { t.Time = ti }
+func (t *BagsChecked) GetTime() uint64                  { return t.Time }
+func (t *BagsChecked) SetTime(ti uint64)                { t.Time = ti }
+func (t *MiscDelaysFinishedFC) GetTime() uint64         { return t.Time }
+func (t *MiscDelaysFinishedFC) SetTime(ti uint64)       { t.Time = ti }
+func (t *MiscDelaysFinishedCoach) GetTime() uint64      { return t.Time }
+func (t *MiscDelaysFinishedCoach) SetTime(ti uint64)    { t.Time = ti }
 
 func (h EventHeap) Len() int           { return len(h) }
 func (h EventHeap) Less(i, j int) bool { return h[i].GetTime() < h[j].GetTime() }

@@ -1,7 +1,7 @@
 package simulation
 
 import (
-	"math"
+	. "github.com/oleiade/lane"
 )
 
 // Make a new person and him to the queues.
@@ -16,15 +16,9 @@ func (arr *CommuterArrival) Visit() {
 	shortest := GetShortest(arr.a.CheckInCoach)
 	shortest.Append(passenger)
 
+	// Add a new Arrival to the queue
 	arr.Time += uint64(round(CommuterArrivalGen()))
 	arr.a.EventHeap.Push(arr)
-}
-
-func round(f float64) int {
-	if math.Abs(f) < 0.5 {
-		return 0
-	}
-	return int(f + math.Copysign(0.5, f))
 }
 
 // Make a new person and him to the queues.
@@ -34,13 +28,21 @@ func (arr *InternationalArrival) Visit() {
 		ArrivalTime: arr.Time,
 		State:       QueueingForCheckIn,
 		Bags:        InternationalBagGen(),
+		FirstClass:  arr.IsFirstClass,
 	}
 
-	shortest := GetShortest(arr.a.CheckInCoach)
+	// Add the passenger to the shortest line available for him
+	var shortest *Queue
+	if arr.IsFirstClass {
+		shortest = GetShortest(arr.A.CheckInFirstClass)
+	} else {
+		shortest = GetShortest(arr.A.CheckInCoach)
+	}
 	shortest.Append(passenger)
 
+	// Add the next arrival to the heap
 	arr.Time += uint64(round(CommuterArrivalGen()))
-	arr.a.EventHeap.Push(arr)
+	arr.A.EventHeap.Push(arr)
 }
 
 func (fa *InternationalFlightTakeOff) Visit() {
@@ -51,26 +53,42 @@ func (fa *InternationalFlightTakeOff) Visit() {
 		FirstClassSeatsFull: 0,
 		IsInternational:     true,
 	}
+	fa.A.EventHeap.Push(flight)
 
 	for i := 0; i < 50; i++ {
 		if BernoulliFirstGen() {
-			// TODO See if we should make a new international first class passenger and queue him
-			// new passenger
+			passenger := InternationalArrival{
+				A:              fa.A,
+				ExpectedFlight: flight,
+				IsFirstClass:   true,
+				Time:           fa.GetTime() + uint64(round(InternationalArrivalGen())),
+			}
+			fa.A.EventHeap.Push(passenger)
 		}
-
 	}
 
 	for i := 0; i < 150; i++ {
 		if BernoulliCoachGen() {
-			// TODO See if we should make a new international first class passenger and queue him
-			// new passenger
+			passenger := InternationalArrival{
+				A:              fa.A,
+				ExpectedFlight: flight,
+				IsFirstClass:   false,
+				Time:           fa.GetTime() + uint64(round(InternationalArrivalGen())),
+			}
+			fa.A.EventHeap.Push(passenger)
 		}
-
 	}
+}
 
-	_ = flight
-	// TODO
-	// make a new flight, and add it to the heap
-	// This makes a ton of new passengers
-	// make a new flight arrival for the same time, and add it to the heap
+func (fa *CommuterFlightTakeOff) Visit() {
+	flight := &Flight{
+		Time:                fa.Time + 30,
+		Passengers:          make([]*Passenger, 50),
+		CoachSeatsFull:      0,
+		FirstClassSeatsFull: 0,
+		IsInternational:     false,
+	}
+	fa.A.EventHeap.Push(flight)
+
+	// TODO need to pull the commuters out of the gate queue
 }
