@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewExpGenerator(lambda float64) func() float64 {
+func NewExpGenerator(lambda float64) func() uint64 {
 	gen := rng.NewExpGenerator(time.Now().UnixNano())
 
 	expBuffer := make(chan float64)
@@ -20,12 +20,12 @@ func NewExpGenerator(lambda float64) func() float64 {
 		}
 	}()
 
-	return func() float64 {
-		return <-expBuffer
+	return func() uint64 {
+		return round(<-expBuffer)
 	}
 }
 
-func NewGeoGenerator(p float64) func() int64 {
+func NewGeoGenerator(p float64) func() uint64 {
 	gen := rng.NewGeometricGenerator(time.Now().UnixNano())
 
 	geoBuffer := make(chan int64)
@@ -36,8 +36,8 @@ func NewGeoGenerator(p float64) func() int64 {
 		}
 	}()
 
-	return func() int64 {
-		return <-geoBuffer
+	return func() uint64 {
+		return uint64(<-geoBuffer)
 	}
 }
 
@@ -57,7 +57,7 @@ func NewBernGenerator(p float64) func() bool {
 	}
 }
 
-func NewNormalGenerator(mean, variance float64) func() float64 {
+func NewNormalGenerator(mean, variance float64) func() uint64 {
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	normBuffer := make(chan float64)
@@ -68,15 +68,25 @@ func NewNormalGenerator(mean, variance float64) func() float64 {
 		}
 	}()
 
-	return func() float64 {
-		return <-normBuffer
+	return func() uint64 {
+		return round(<-normBuffer)
 	}
 
 }
 
-func round(f float64) int {
+func NewUniformRandomGenerator() func(int) int {
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	return func(n int) int {
+		return random.Intn(n)
+	}
+
+}
+
+func round(f float64) uint64 {
 	if math.Abs(f) < 0.5 {
 		return 0
 	}
-	return int(f + math.Copysign(0.5, f))
+	return uint64(f + math.Copysign(0.5, f))
 }

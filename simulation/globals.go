@@ -25,4 +25,5 @@ var (
 	InternationalBagGen     = NewGeoGenerator(0.60)
 	BernoulliFirstGen       = NewBernGenerator(0.80)
 	BernoulliCoachGen       = NewBernGenerator(0.85)
+	QueuePicker             = NewUniformRandomGenerator()
 )

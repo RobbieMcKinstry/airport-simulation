@@ -31,7 +31,6 @@ type (
 
 		SecurityFirstClass *Queue
 		SecurityCoach      *Queue
-		SecurityCoach2     *Queue
 		CheckInFirstClass  []*Queue
 		CheckInCoach       []*Queue
 
@@ -78,21 +77,12 @@ type (
 		State       int
 		Bags        int64
 	}
-
-	// TODO need to track if the counter is for first class passengers or not
-	Counter struct {
-		State        int       // The state that the passenger is in at the current time
-		IsFirstClass bool      // Represents whether or not this counter is for first class passengers or not
-		current      Passenger // The person at the desk
-		Time         uint64    // The time that the event is over
-		A            *Airport  // A link to the parent airport
-	}
 )
 
 // This block declares all of the event types.
 type (
 	CommuterArrival struct {
-		a    *Airport
+		A    *Airport
 		Time uint64
 	}
 
@@ -131,19 +121,44 @@ type (
 	BoardingPassPrinted struct {
 		A    *Airport
 		Time uint64
+		Curr *Passenger
 	}
 
 	BagsChecked struct {
 		A    *Airport
 		Time uint64
+		Curr *Passenger
 	}
 
 	MiscDelaysFinishedFC struct {
 		A    *Airport
 		Time uint64
+		Curr *Passenger
 	}
 
 	MiscDelaysFinishedCoach struct {
+		A    *Airport
+		Time uint64
+		Curr *Passenger
+	}
+
+	LeaveSecurityFirstClass struct {
+		A    *Airport
+		Time uint64
+	}
+
+	LeaveSecurityCoach struct {
+		A            *Airport
+		Time         uint64
+		HasPassenger bool
+	}
+
+	EmptySecurityFirstClass struct {
+		A    *Airport
+		Time uint64
+	}
+
+	EmptySecurityCoach struct {
 		A    *Airport
 		Time uint64
 	}
@@ -171,6 +186,14 @@ func (t *MiscDelaysFinishedFC) GetTime() uint64         { return t.Time }
 func (t *MiscDelaysFinishedFC) SetTime(ti uint64)       { t.Time = ti }
 func (t *MiscDelaysFinishedCoach) GetTime() uint64      { return t.Time }
 func (t *MiscDelaysFinishedCoach) SetTime(ti uint64)    { t.Time = ti }
+func (t *LeaveSecurityFirstClass) GetTime() uint64      { return t.Time }
+func (t *LeaveSecurityFirstClass) SetTime(ti uint64)    { t.Time = ti }
+func (t *LeaveSecurityCoach) GetTime() uint64           { return t.Time }
+func (t *LeaveSecurityCoach) SetTime(ti uint64)         { t.Time = ti }
+func (t *EmptySecurityCoach) GetTime() uint64           { return t.Time }
+func (t *EmptySecurityCoach) SetTime(ti uint64)         { t.Time = ti }
+func (t *EmptySecurityFirstClass) GetTime() uint64      { return t.Time }
+func (t *EmptySecurityFirstClass) SetTime(ti uint64)    { t.Time = ti }
 
 func (h EventHeap) Len() int           { return len(h) }
 func (h EventHeap) Less(i, j int) bool { return h[i].GetTime() < h[j].GetTime() }

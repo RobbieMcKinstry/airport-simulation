@@ -17,7 +17,7 @@ func (arr *CommuterArrival) Visit() {
 	shortest.Append(passenger)
 
 	// Add a new Arrival to the queue
-	arr.Time += uint64(round(CommuterArrivalGen()))
+	arr.Time += round(CommuterArrivalGen())
 	arr.a.EventHeap.Push(arr)
 }
 
@@ -41,7 +41,7 @@ func (arr *InternationalArrival) Visit() {
 	shortest.Append(passenger)
 
 	// Add the next arrival to the heap
-	arr.Time += uint64(round(CommuterArrivalGen()))
+	arr.Time += CommuterArrivalGen()
 	arr.A.EventHeap.Push(arr)
 }
 
@@ -61,7 +61,7 @@ func (fa *InternationalFlightTakeOff) Visit() {
 				A:              fa.A,
 				ExpectedFlight: flight,
 				IsFirstClass:   true,
-				Time:           fa.GetTime() + uint64(round(InternationalArrivalGen())),
+				Time:           fa.GetTime() + InternationalArrivalGen(),
 			}
 			fa.A.EventHeap.Push(passenger)
 		}
@@ -73,11 +73,14 @@ func (fa *InternationalFlightTakeOff) Visit() {
 				A:              fa.A,
 				ExpectedFlight: flight,
 				IsFirstClass:   false,
-				Time:           fa.GetTime() + uint64(round(InternationalArrivalGen())),
+				Time:           fa.GetTime() + InternationalArrivalGen(),
 			}
 			fa.A.EventHeap.Push(passenger)
 		}
 	}
+
+	fa.A.Account += fa.FirstClassSeatsFull * 1000
+	fa.A.Account += fa.CoachSeatsFull * 500
 }
 
 func (fa *CommuterFlightTakeOff) Visit() {
@@ -90,5 +93,12 @@ func (fa *CommuterFlightTakeOff) Visit() {
 	}
 	fa.A.EventHeap.Push(flight)
 
-	// TODO need to pull the commuters out of the gate queue
+	for i := 0; i < 50; i++ {
+		if fa.A.CommuterGate.Empty() {
+			break
+		}
+		append(fa.Passengers, fa.A.CommuterGate.Pop().(Commuter))
+	}
+
+	fa.A.Account += len(fa.Passengers) * 200
 }

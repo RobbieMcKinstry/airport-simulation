@@ -4,92 +4,137 @@ import (
 	"container/heap"
 )
 
-// check the state, and then handle each transition case
-func (c *Counter) Visit() {
-	switch c.State {
-	case PrintingBoardingPass:
-		c.CheckBags()
-	case CheckingBags:
-		c.MiscDelays()
-	case MiscDelays:
-		c.ReadyForSecurity()
-	case EmptyQueue:
-		c.EmptyQueue()
-	default:
-		panic("Reached an impossible state while at a counter.")
-	}
-}
-
-// The customer is about to check their bags.
-func (c *Counter) CheckBags() {
-	c.State = CheckingBags
-
-	// Calculate the total amount of time from now when the event will occur
+func (bpp *BoardingPassPrinted) Visit() {
 	sum := 0.0
-	for i := 0; int64(i) < c.current.Bags(); i++ {
+	for i := 0; int64(i) < c.curr.Bags(); i++ {
 		sum += BagCheckGen()
 	}
 
-	c.Time += uint64(sum)
-	heap.Push(c.A.EventHeap, c) // Add the event to be fired once the bags are checked
+	// Make a new BagsChecked struct
+	bagsChecked := &BagsChecked{
+		A:    bpp.A,
+		Time: bpp.GetTime() + uint64(round(sum)),
+		Curr: bpp.Curr,
+	}
+
+	// Push this new event onto the heap
+	bpp.A.EventHeap.Push(bagsChecked)
 }
 
-// The customer is about to experience delays
-func (c *Counter) MiscDelays() {
+func (bc *BagsChecked) Visit() {
+	var next Visitor
 
-	c.State = MiscDelays
-
-	// Calculate the amount of time from now when the delays will be over
-	c.Time += uint64(MiscGen())
-	heap.Push(c.A.EventHeap, c) // Add the event to be fired once the deplays are over
-}
-
-func (c *Counter) ReadyForSecurity() {
-
-	//////////////////////////////////////////////////////////////////////////////////////////
-	// First, check to see if the passenger is first class
-	// if they're first class, add them to the first class security queue
-	// if the passenger is not first class, then find the shortest queue and add them to it
-	// then, pull someone out of line, based on if you're in a first class counter or not
-	// if there's no one in the queue, then add an empty queue event at one minute from now
-	/////////////////////////////////////////////////////////////////////////////////////////
-	c.State = AtSecurity
-
-	// pull someone off the queue
-	// TODO reduce the complexity by handling a variable number of queues
-	// TODO reduce the complexity by handling a first class queue differently from a coach queue
-	if c.current.IsFirstClass() {
-		c.A.SecurityFirstClass.Append(c.current)
+	if bc.Curr.IsFirstClass() {
+		next = MiscDelaysFinishedFC{
+			A:    bc.A,
+			Time: bc.GetTime() + uint64(round(MiscGen())),
+			Curr: bc.Curr,
+		}
 	} else {
-		if c.A.SecurityCoach.Size() > c.A.SecurityCoach2.Size() {
-			c.A.SecurityCoach.Append(c.current)
-		} else {
-			c.A.SecurityCoach2.Append(c.current)
+		next = MiscDelaysFinishedCoach{
+			A:    bc.A,
+			Time: bc.GetTime() + uint64(round(MiscGen())),
+			Curr: bc.Curr,
 		}
 	}
+	bc.A.EventHeap.Push(next)
+}
 
-	// TODO finish this
-	// if no one's in the queue, then requeue this with an incremented time
-	if c.IsFirstClass {
+func (misc *MisDelaysFinishedFC) Visit() {
 
-	} else {
+	// They just finished their delays and are ready to move to security.
+	// They're first class, so they need to move to the first class security field.
+	misc.A.SecurityFirstClass.Append(misc.Curr)
 
+	// Now, look at see if there's anyone in the first class check in queue
+	if GetShortest(misc.A.CheckInFirstClass).Empty() {
+		empty := CheckInEmptyFirstClass{
+			A:    misc.A,
+			Time: misc.Time + uint64(1),
+		}
+		misc.A.EventHeap.Push(empty) // Add this new event to the heap
+		return
 	}
-}
 
-// TODO implement this, diferently for a first class and for a coach queue
-func (c *Counter) EmptyQueue() {
-	if c.IsFirstClass {
-		c.FirstClassEmpty()
-	} else {
-		c.CoachEmpty()
+	// Else, pull someone off the queue
+	bpp := &BoardingPassPrinted{
+		A:    misc.A,
+		Time: misc.Time + BoardingPassGen(),
+		Curr: GetLongest(misc.A.CheckInFirstClass).Pop().(International),
 	}
+	misc.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
 }
 
-func (c *Counter) FirstClassEmpty() {
-	// TODO figure out a way to make queue time fair and balanced so people don't wait too long
+func (misc *MiscDelaysFinishedCoach) Visit() {
+
+	// They just finished their delays and are ready to move to security.
+	// They're first class, so they need to move to the first class security field.
+	misc.A.SecurityCoach.Append(misc.Curr)
+
+	// Check if there's anyone in line in the coach queue
+	if GetShortest(misc.A.CheckInCoach).Empty() {
+		empty := CheckInEmptyCoach{
+			A:    misc.A,
+			Time: misc.Time + uint64(1),
+		}
+		misc.A.EventHeap.Push(empty) // Add this new event to the heap
+		return
+	}
+
+	// Else, pull someone off the queue
+	bpp := &BoardingPassPrinted{
+		A:    misc.A,
+		Time: misc.Time + BoardingPassGen(),
+		Curr: GetLongest(misc.A.CheckInCoach).Pop().(Passenger),
+	}
+	misc.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
 }
 
-func (c *Counter) CoachEmpty() {
-	// TODO figure out a way to make queue time fair and balanced so people don't wait too long
+func (ci *CheckInEmptyCoach) Visit() {
+	// Add 1 to the total time that has been wasted
+	ci.A.IdleTime += 1
+	ci.A.IdleTimeCoach += 1
+
+	// See if there's someone in line. If not, replicate. Else, pull them off the queue and make a new event for them
+	if GetShortest(ci.A.CheckInCoach).Empty() {
+		empty := CheckInEmptyCoach{
+			A:    ci.A,
+			Time: ci.Time + uint64(1),
+		}
+		ci.A.EventHeap.Push(empty) // Add this new event to the heap
+		return
+	}
+
+	// Else, pull someone off the queue
+	bpp := &BoardingPassPrinted{
+		A:    ci.A,
+		Time: ci.Time + BoardingPassGen(),
+		Curr: GetLongest(ci.A.CheckInCoach).Pop().(Passenger),
+	}
+	ci.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
+
+}
+
+func (ci *CheckInEmptyFirstClass) Visit() {
+	// Add 1 to the total time that has been wasted
+	ci.A.IdleTime += 1
+	ci.A.IdleTimeFirstClass += 1
+
+	// See if there's someone in line. If not, replicate. Else, pull them off the queue and make a new event for them
+	if GetShortest(ci.A.CheckInFirstClass).Empty() {
+		empty := CheckInEmptyFirstClass{
+			A:    ci.A,
+			Time: ci.Time + uint64(1),
+		}
+		ci.A.EventHeap.Push(empty) // Add this new event to the heap
+		return
+	}
+
+	// Else, pull someone off the queue
+	bpp := &BoardingPassPrinted{
+		A:    ci.A,
+		Time: ci.Time + BoardingPassGen(),
+		Curr: GetLongest(ci.A.CheckInFirstClass).Pop().(International),
+	}
+	ci.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
 }

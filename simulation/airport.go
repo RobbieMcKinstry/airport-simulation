@@ -18,6 +18,7 @@ func NewAirport() *Airport {
 		CheckInFirstClass:  []*Queue{NewQueue()},
 		CheckInCoach:       []*Queue{NewQueue(), NewQueue(), NewQueue()},
 		Account:            0.0,
+		CommuterGate:       NewQueue(),
 	}
 }
 
@@ -36,4 +37,16 @@ func GetShortest(qs []*Queue) *Queue {
 	}
 
 	return min
+}
+
+func GetLongest(qs []*Queue) *Queue {
+	max := qs[0]
+
+	for _, q := range qs {
+		if q.Size() > min.Size() {
+			max = q
+		}
+	}
+
+	return max
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "github.com/RobbieMcKinstry/airport-simulation"
+	. "github.com/RobbieMcKinstry/airport-simulation/simulation"
 )
 
 func main() {
