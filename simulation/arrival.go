@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"container/heap"
 	. "github.com/oleiade/lane"
 )
 
@@ -10,15 +11,15 @@ func (arr *CommuterArrival) Visit() {
 	passenger := &Commuter{
 		ArrivalTime: arr.Time,
 		State:       QueueingForCheckIn,
-		Bags:        CommuterBagGen(),
+		bags:        CommuterBagGen(),
 	}
 
-	shortest := GetShortest(arr.a.CheckInCoach)
+	shortest := GetShortest(arr.A.CheckInCoach)
 	shortest.Append(passenger)
 
 	// Add a new Arrival to the queue
-	arr.Time += round(CommuterArrivalGen())
-	arr.a.EventHeap.Push(arr)
+	arr.Time += CommuterArrivalGen()
+	arr.A.EventHeap.Push(arr)
 }
 
 // Make a new person and him to the queues.
@@ -27,8 +28,9 @@ func (arr *InternationalArrival) Visit() {
 	passenger := &International{
 		ArrivalTime: arr.Time,
 		State:       QueueingForCheckIn,
-		Bags:        InternationalBagGen(),
+		bags:        InternationalBagGen(),
 		FirstClass:  arr.IsFirstClass,
+		TakeOff:     arr.ExpectedFlight,
 	}
 
 	// Add the passenger to the shortest line available for him
@@ -48,16 +50,15 @@ func (arr *InternationalArrival) Visit() {
 func (fa *InternationalFlightTakeOff) Visit() {
 	flight := &Flight{
 		Time:                fa.Time + 6*60,
-		Passengers:          make([]*Passenger, 200),
+		Passengers:          make([]Passenger, 200),
 		CoachSeatsFull:      0,
 		FirstClassSeatsFull: 0,
 		IsInternational:     true,
 	}
-	fa.A.EventHeap.Push(flight)
 
 	for i := 0; i < 50; i++ {
 		if BernoulliFirstGen() {
-			passenger := InternationalArrival{
+			passenger := &InternationalArrival{
 				A:              fa.A,
 				ExpectedFlight: flight,
 				IsFirstClass:   true,
@@ -69,7 +70,7 @@ func (fa *InternationalFlightTakeOff) Visit() {
 
 	for i := 0; i < 150; i++ {
 		if BernoulliCoachGen() {
-			passenger := InternationalArrival{
+			passenger := &InternationalArrival{
 				A:              fa.A,
 				ExpectedFlight: flight,
 				IsFirstClass:   false,
@@ -78,27 +79,26 @@ func (fa *InternationalFlightTakeOff) Visit() {
 			fa.A.EventHeap.Push(passenger)
 		}
 	}
-
-	fa.A.Account += fa.FirstClassSeatsFull * 1000
-	fa.A.Account += fa.CoachSeatsFull * 500
+	heap.Push(fa.A.EventHeap, &InternationalFlightTakeOff{fa.A, flight.Time})
+	fa.A.Account += flight.FirstClassSeatsFull * 1000
+	fa.A.Account += flight.CoachSeatsFull * 500
 }
 
 func (fa *CommuterFlightTakeOff) Visit() {
 	flight := &Flight{
 		Time:                fa.Time + 30,
-		Passengers:          make([]*Passenger, 50),
+		Passengers:          make([]Passenger, 50),
 		CoachSeatsFull:      0,
 		FirstClassSeatsFull: 0,
 		IsInternational:     false,
 	}
-	fa.A.EventHeap.Push(flight)
 
 	for i := 0; i < 50; i++ {
 		if fa.A.CommuterGate.Empty() {
 			break
 		}
-		append(fa.Passengers, fa.A.CommuterGate.Pop().(Commuter))
+		flight.Passengers = append(flight.Passengers, fa.A.CommuterGate.Pop().(*Commuter))
 	}
-
-	fa.A.Account += len(fa.Passengers) * 200
+	heap.Push(fa.A.EventHeap, &CommuterFlightTakeOff{fa.A, flight.Time})
+	fa.A.Account += len(flight.Passengers) * 200
 }

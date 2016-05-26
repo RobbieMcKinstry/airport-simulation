@@ -1,19 +1,19 @@
 package simulation
 
 import (
-	"container/heap"
+	_ "container/heap"
 )
 
 func (bpp *BoardingPassPrinted) Visit() {
-	sum := 0.0
-	for i := 0; int64(i) < c.curr.Bags(); i++ {
+	sum := uint64(0)
+	for i := 0; uint64(i) < bpp.Curr.Bags(); i++ {
 		sum += BagCheckGen()
 	}
 
 	// Make a new BagsChecked struct
 	bagsChecked := &BagsChecked{
 		A:    bpp.A,
-		Time: bpp.GetTime() + uint64(round(sum)),
+		Time: bpp.GetTime() + sum,
 		Curr: bpp.Curr,
 	}
 
@@ -22,25 +22,25 @@ func (bpp *BoardingPassPrinted) Visit() {
 }
 
 func (bc *BagsChecked) Visit() {
-	var next Visitor
+	var next Event
 
 	if bc.Curr.IsFirstClass() {
-		next = MiscDelaysFinishedFC{
+		next = &MiscDelaysFinishedFC{
 			A:    bc.A,
-			Time: bc.GetTime() + uint64(round(MiscGen())),
+			Time: bc.GetTime() + MiscGen(),
 			Curr: bc.Curr,
 		}
 	} else {
-		next = MiscDelaysFinishedCoach{
+		next = &MiscDelaysFinishedCoach{
 			A:    bc.A,
-			Time: bc.GetTime() + uint64(round(MiscGen())),
+			Time: bc.GetTime() + MiscGen(),
 			Curr: bc.Curr,
 		}
 	}
 	bc.A.EventHeap.Push(next)
 }
 
-func (misc *MisDelaysFinishedFC) Visit() {
+func (misc *MiscDelaysFinishedFC) Visit() {
 
 	// They just finished their delays and are ready to move to security.
 	// They're first class, so they need to move to the first class security field.
@@ -60,7 +60,7 @@ func (misc *MisDelaysFinishedFC) Visit() {
 	bpp := &BoardingPassPrinted{
 		A:    misc.A,
 		Time: misc.Time + BoardingPassGen(),
-		Curr: GetLongest(misc.A.CheckInFirstClass).Pop().(International),
+		Curr: GetLongest(misc.A.CheckInFirstClass).Pop().(*International),
 	}
 	misc.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
 }
@@ -134,7 +134,7 @@ func (ci *CheckInEmptyFirstClass) Visit() {
 	bpp := &BoardingPassPrinted{
 		A:    ci.A,
 		Time: ci.Time + BoardingPassGen(),
-		Curr: GetLongest(ci.A.CheckInFirstClass).Pop().(International),
+		Curr: GetLongest(ci.A.CheckInFirstClass).Pop().(*International),
 	}
 	ci.A.EventHeap.Push(bpp) // Add this new person's check in to the heap
 }

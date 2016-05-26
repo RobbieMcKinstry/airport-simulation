@@ -1,20 +1,18 @@
 package simulation
 
 import (
-	"container/heap"
+	_ "container/heap"
 )
 
 func (sec *LeaveSecurityFirstClass) Visit() {
-	// Assert that there's someone in the queue
-	if sec.SecurityFirstClass.Empty() {
-		panic("Empty security line, but it's supposed to have a passenger")
-	}
 
-	passenger := sec.SecurityFirstClass.Pop().(Passenger)
+	passenger := sec.A.SecurityFirstClass.Pop().(*International)
+	passenger.TakeOff.Passengers = append(passenger.TakeOff.Passengers, passenger)
 }
 
 func (sec *LeaveSecurityCoach) Visit() {
-
+	passenger := sec.A.SecurityCoach.Pop().(*Commuter)
+	sec.A.CommuterGate.Append(passenger)
 }
 
 func (sec *EmptySecurityFirstClass) Visit() {
